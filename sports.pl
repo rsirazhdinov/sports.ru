@@ -36,7 +36,19 @@ helper validate => sub {
   my ($user, $room, $reserve_date, $time_begin, $time_end) = @_;
   return "Start time must be less than end time" if $time_begin >= $time_end;
 
-  my @ary = @{ $dbh->selectall_arrayref("select users.name from reservation inner join users on reservation.login = users.login where reservation.reserve_date = ? and reservation.room = ? and ((reservation.time_begin <= ? and reservation.time_end >= ?) or (reservation.time_begin <= ? and reservation.time_end >= ?) or (reservation.time_begin >= ? and reservation.time_end <= ?))", undef,$reserve_date, $room, $time_begin, $time_begin, $time_end, $time_end, $time_begin, $time_end) };
+  my @ary = @{ $dbh->selectall_arrayref("
+  it sSELECT users.name || ' (' || reservation.time_begin || ' - ' || reservation.time_end || ')'
+FROM reservation
+INNER JOIN users
+    ON reservation.login = users.login
+WHERE reservation.reserve_date = ?
+        AND reservation.room = ?
+        AND ((reservation.time_begin <= ?
+        AND reservation.time_end >= ?)
+        OR (reservation.time_begin <= ?
+        AND reservation.time_end >= ?)
+        OR (reservation.time_begin >= ?
+        AND reservation.time_end <= ?))", undef,$reserve_date, $room, $time_begin, $time_begin, $time_end, $time_end, $time_begin, $time_end) };
   my @error = map {$_->[0]} @ary;
   my $error = join ' and ', @error;
   return "Meeting room \"$room\" from $time_begin to $time_end reserved by ". $error if $error;
